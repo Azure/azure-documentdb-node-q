@@ -8,6 +8,7 @@ This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure
 	npm install documentdb-q-promises</pre></p>
 
 ##Hello world example code using Q promises
+```js
 	var DocumentClient = require('documentdb-q-promises').DocumentClientWrapper;
 	
 	var host = [hostendpoint];                    // Add your endpoint
@@ -36,4 +37,4 @@ This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure
     	.fail(function(error) {
         	console.log("An error occured", error);
     	});
- 
+ ```
