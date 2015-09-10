@@ -12,7 +12,7 @@ For documentation please see the Microsoft Azure [Node.js Developer Center](http
 
 ##Installation
 
-This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure/azure-documentdb-node) using the [Q promises](https://github.com/kriskowal/q) 
+This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure/azure-documentdb-node) using the [Q promises](https://github.com/kriskowal/q) library.
 
 	npm install documentdb-q-promises
 
