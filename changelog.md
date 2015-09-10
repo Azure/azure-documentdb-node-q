@@ -1,3 +1,7 @@
+## Changes in 1.2.2 : ##
+
+- Move to seperate repository
+
 ## Changes in 1.2.0 : ##
 
 - Added support for GeoSpatial index.
