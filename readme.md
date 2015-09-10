@@ -51,3 +51,25 @@ To use this SDK to call Azure DocumentDB, you need to first [create an account](
         	console.log("An error occured", error);
     	});
  ```
+
+###Youtube Videos
+
+Getting started with Azure DocumentDB on Node.js:
+
+[![Azure Demo: Getting started with Azure DocumentDB on Node.js](http://img.youtube.com/vi/UAE7h9PCZjA/0.jpg)](http://www.youtube.com/watch?v=UAE7h9PCZjA)
+
+##Need Help?
+
+Be sure to check out the Microsoft Azure [Developer Forums on MSDN](https://social.msdn.microsoft.com/forums/azure/en-US/home?forum=AzureDocumentDB) or the [Developer Forums on Stack Overflow](http://stackoverflow.com/questions/tagged/azure-documentdb) if you have trouble with the provided code.
+
+##Contribute Code or Provide Feedback
+
+If you would like to become an active contributor to this project please follow the instructions provided in [Azure Projects Contribution Guidelines](http://azure.github.io/guidelines.html).
+
+If you encounter any bugs with the library please file an issue in the [Issues](https://github.com/Azure/azure-documentdb-node-q/issues) section of the project.
+
+##Learn More
+
+* [Azure Developer Center](http://azure.microsoft.com/en-us/develop/nodejs)
+* [Azure DocumentDB Node.js SDK Documentation](http://azure.github.io/azure-documentdb-node-q/)
+* [Azure DocumentDB Service](http://azure.microsoft.com/en-us/documentation/services/documentdb/)
