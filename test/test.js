@@ -19,26 +19,39 @@ var masterKey = testConfig.masterKey;
 describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
 
     function validateCRUDAsync(client, parentLink, options) {
-        var deferred = Q.defer();
-        var className = options.className, resourceDefinition = options.resourceDefinition, validateCreate = options.validateCreate,
-            validateReplace = options.validateReplace, replaceProperties = options.replaceProperties;
+        var deferred = Q.defer(),
+            className = options.className,
+            replaceProperties = options.replaceProperties,
+            replacePropertiesForUpsert = options.replacePropertiesForUpsert,
+            resourceDefinition = options.resourceDefinition,
+            useUpsert = options.useUpsert || false,
+            validateCreate = options.validateCreate,
+            validateReplace = options.validateReplace,
+            validateReplaceWithUpsert = options.validateReplaceWithUpsert;
+
         var resources, replacedResource, readResource, createdResource, beforeCount;
+
         client["read" + className + "s"](parentLink).toArrayAsync()
+            // create or upsert
             .then(function (response) {
                 resources = response.feed;
                 assert.equal(resources.constructor, Array, "Value should be an array");
                 beforeCount = resources.length;
-                if (parentLink) {
+                if (parentLink && useUpsert) {
+                    return client["upsert" + className + "Async"](parentLink, resourceDefinition);
+                } else if (parentLink) {
                     return client["create" + className + "Async"](parentLink, resourceDefinition);
                 } else {
                     return client["create" + className + "Async"](resourceDefinition);
                 }
             })
+            // read
             .then(function (response) {
                 createdResource = response.resource;
                 validateCreate(createdResource);
                 return client["read" + className + "s"](parentLink).toArrayAsync();
             })
+            // query
             .then(function (response) {
                 var resources = response.feed;
                 assert(resources.length > 0, "number of resources for the query should be > 0");
@@ -57,29 +70,43 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                     return client["query" + className + "s"](querySpec).toArrayAsync();
                 }
             })
+            // replace or upsert
             .then(function (response) {
                 var resources = response.feed;
                 assert(resources.length > 0, "number of resources for the query should be > 0");
-                createdResource = replaceProperties(createdResource);
                 if (className === "Database") {
+                    createdResource = replaceProperties(createdResource);
                     return client["read" + className + "Async"](createdResource._self);
                 } else {
-                    return client["replace" + className + "Async"](createdResource._self, createdResource);
+                    if (useUpsert) {
+                        createdResource = replacePropertiesForUpsert(createdResource);
+                        return client["upsert" + className + "Async"](parentLink, createdResource);
+                    } else {
+                        createdResource = replaceProperties(createdResource);
+                        return client["replace" + className + "Async"](createdResource._self, createdResource);
+                    }
                 }
             })
+            // read
             .then(function (response) {
                 replacedResource = response.resource;
-                validateReplace(createdResource, replacedResource);
+                if (useUpsert) {
+                    validateReplaceWithUpsert(createdResource, replacedResource);
+                } else {
+                    validateReplace(createdResource, replacedResource);
+                }
                 return client["read" + className + "Async"](replacedResource._self);
             })
+            // delete
             .then(function (response) {
                 var readResource = response.resource;
                 assert.equal(replacedResource.id, readResource.id);
                 return client["delete" + className + "Async"](readResource._self);
             })
+            // read
             .then(function (response) {
-                client["read" + className + "Async"](replacedResource._self)
-                    .then(function (response) {
+                client["read" + className + "Async"](replacedResource._self).then(
+                    function (response) {
                         assert.fail("", "", "request should return an error");
                     },
                     function (error) {
@@ -88,6 +115,7 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                         deferred.resolve();
                     });
             })
+            // handle any error
             .fail(function (error) {
                 console.log("error", error, error.stack);
                 assert.fail("", "", "an error occurred");
@@ -236,10 +264,10 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
         });
     });
 
-    describe("Validate Document CRUD", function(){
-        it("[promiseApi] Should do document CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, coll: true})
+    describe("Validate Document CRUD", function() {
+        var validateDocumentCrudTest = function (useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, coll: true })
                 .then(function(createdResources) {
                     var validateOptions = {
                         className: "Document",
@@ -257,7 +285,16 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             resource.id = "replaced document";
                             resource.foo = "not bar";
                             return resource;
-                        }
+                        },
+                        replacePropertiesForUpsert: function (resource) {
+                            resource.foo = "not bar";
+                            return resource;
+                        },
+                        validateReplaceWithUpsert: function(created, replaced) {
+                            assert.equal(replaced.foo, "not bar", "property should have changed");
+                            assert.equal(created.id, replaced.id, "id should stay the same");
+                        },
+                        useUpsert: useUpsert
                     };
 
                     validateCRUDAsync(client, createdResources.createdCollection._self, validateOptions)
@@ -269,7 +306,10 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do document CRUD operations successfully", function (done) { validateDocumentCrudTest(false, done) });
+        it("[promiseApi] Should do document CRUD operations successfully with upsert", function (done) { validateDocumentCrudTest(true, done) });
     });
 
     describe("Validate Attachment CRUD", function(){
@@ -304,9 +344,9 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
             });
         };
 
-        it("[promiseApi] Should do attachment CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, coll: true, doc: true})
+        var validateAttachmentCrudTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, coll: true, doc: true })
                 .then(function(createdResources) {
                     var attachmentDefinition = {
                         id: "dynamic attachment",
@@ -324,12 +364,22 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             assert.equal(created.Author, "My Book Author", "invalid property value");
                         },
                         validateReplace: function(created, replaced) {
+                            assert.equal(replaced.id, "dynamic attachment replaced", "invalid id");
                             assert.equal(replaced.MediaType, "Book", "invalid media type");
                             assert.equal(replaced.Author, "new author", "invalid property value");
                         },
-                        replaceProperties: function(resource) {
+                        replaceProperties: function (resource) {
+                            resource.id = "dynamic attachment replaced"
                             resource.Author = "new author";
                             return resource;
+                        },
+                        replacePropertiesForUpsert: function(resource) {
+                            resource.Author = "new author";
+                            return resource;
+                        },
+                        validateReplaceForUpsert: function(created, replaced) {
+                            assert.equal(replaced.MediaType, "Book", "invalid media type");
+                            assert.equal(replaced.Author, "new author", "invalid property value");
                         }
                     };
 
@@ -342,7 +392,10 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do attachment CRUD operations successfully", function (done) { validateAttachmentCrudTest(false, done) });
+        it("[promiseApi] Should do attachment CRUD operations successfully with upsert", function(done) { validateAttachmentCrudTest(true, done) });
 
         it("[promiseApi] Should do attachment media operations successfully", function(done){
             var client = new DocumentDBClient(host, {masterKey: masterKey});
@@ -359,7 +412,6 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                 }, function (error) {
                     var badRequestErrorCode = 400;
                     assert.equal(error.code, badRequestErrorCode);
-
                     contentStream = createReadableStream();
                     return client.createAttachmentAndUploadMediaAsync(document._self, contentStream, validMediaOptions);
                 }).then(function (response) {
@@ -391,14 +443,14 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
         });
     });
 
-    describe("Validate User CRUD", function(){
-        it("[promiseApi] Should do User CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true})
+    describe("Validate User CRUD", function() {
+        var userCrudTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true })
                 .then(function(createdResources) {
                     var validateOptions = {
                         className: "User",
-                        resourceDefinition: { id: "new user"},
+                        resourceDefinition: { id: "new user" },
                         validateCreate: function(created) {
                             assert.equal(created.id, "new user", "wrong id");
                         },
@@ -408,6 +460,14 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                         },
                         replaceProperties: function(resource) {
                             resource.id = "replaced user";
+                            return resource;
+                        },
+                        validateReplaceForUpsert: function (created, replaced) {
+                            // Upsert on an exisiting user is a No Op
+                            assert.equal(created.id, replaced.id, "id should stay the same");
+                        },
+                        replacePropertiesForUpsert: function (resource) {
+                            // no properties other than id to update
                             return resource;
                         }
                     };
@@ -421,13 +481,16 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do User CRUD operations successfully", function(done) { userCrudTest(false, done) });
+        it("[promiseApi] Should do User CRUD operations successfully with upsert", function(done) { userCrudTest(true, done) });
     });
 
-    describe("Validate Permission CRUD", function(){
-        it("[promiseApi] Should do Permission CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, user: true, coll: true})
+    describe("Validate Permission CRUD", function() {
+        var permissionCrudTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, user: true, coll: true })
                 .then(function(createdResources) {
                     var validateOptions = {
                         className: "Permission",
@@ -446,6 +509,14 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             resource.id = "replaced permission";
                             resource.permissionMode = DocumentBase.PermissionMode.All;
                             return resource;
+                        },
+                        validateReplaceForUpsert: function(created, replaced) {
+                            assert.equal(replaced.permissionMode, DocumentBase.PermissionMode.All, "permission mode should change");
+                            assert.equal(created.id, replaced.id, "id should stay the same");
+                        },
+                        replacePropertiesForUpsert: function(resource) {
+                            resource.permissionMode = DocumentBase.PermissionMode.All;
+                            return resource;
                         }
                     };
 
@@ -458,17 +529,20 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do Permission CRUD operations successfully", function (done) { permissionCrudTest(false, done); });
+        it("[promiseApi] Should do Permission CRUD operations successfully with upsert", function (done) { permissionCrudTest(true, done); });
     });
 
-    describe("Validate Trigger CRUD", function(){
-        it("[promiseApi] Should do trigger CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, coll: true})
+    describe("Validate Trigger CRUD", function() {
+        var triggerCrudTest = function(userUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, coll: true })
                 .then(function(createdResources) {
                     var triggerDefinition = {
                         id: "sample trigger",
-                        serverScript: function () { var x = 10; },
+                        serverScript: function() { var x = 10; },
                         triggerType: DocumentBase.TriggerType.Pre,
                         triggerOperation: DocumentBase.TriggerOperation.All
                     };
@@ -478,24 +552,40 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                         resourceDefinition: triggerDefinition,
                         validateCreate: function(created) {
                             for (var property in triggerDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(created[property], triggerDefinition[property], "property " + property + " should match");
-                                } else {
+                                if (property === "serverScript") {
                                     assert.equal(created.body, "function () { var x = 10; }");
+                                } else {
+                                    assert.equal(created[property], triggerDefinition[property], "property " + property + " should match");
                                 }
                             }
                         },
                         validateReplace: function(created, replaced) {
                             for (var property in triggerDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
-                                } else {
+                                if (property === "serverScript") {
                                     assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else if (property === "id") {
+                                    assert.equal(replaced.id, "sample trigger replaced", "id should match");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
                                 }
                             }
                         },
-                        replaceProperties: function(resource) {
-                            resource.body = function () { var x = 20; };
+                        replaceProperties: function (resource) {
+                            resource.id = "sample trigger replaced";
+                            resource.body = function() { var x = 20; };
+                            return resource;
+                        },
+                        validateReplaceForUpsert: function(created, replaced) {
+                            for (var property in triggerDefinition) {
+                                if (property === "serverScript") {
+                                    assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " +property + " should match");
+                                }
+                            }
+                        },
+                        replacePropertiesForUpsert: function(resource) {
+                            resource.body = function() { var x = 20; };
                             return resource;
                         }
                     };
@@ -509,13 +599,16 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do trigger CRUD operations successfully", function(done) { triggerCrudTest(false, done); });
+        it("[promiseApi] Should do trigger CRUD operations successfully with upsert", function(done) { triggerCrudTest(true, done); });
     });
 
-    describe("Validate UDF CRUD", function(){
-        it("[promiseApi] Should do UDF CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, coll: true})
+    describe("Validate UDF CRUD", function() {
+        var udfCrudTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, coll: true })
                 .then(function(createdResources) {
                     var udfDefinition = { id: "sample udf", serverScript: function() { var x = 10; } };
 
@@ -524,24 +617,40 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                         resourceDefinition: udfDefinition,
                         validateCreate: function(created) {
                             for (var property in udfDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(created[property], udfDefinition[property], "property " + property + " should match");
-                                } else {
+                                if (property === "serverScript") {
                                     assert.equal(created.body, "function () { var x = 10; }");
+                                } else {
+                                    assert.equal(created[property], udfDefinition[property], "property " + property + " should match");
                                 }
                             }
                         },
                         validateReplace: function(created, replaced) {
                             for (var property in udfDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
-                                } else {
+                                if (property === "serverScript") {
                                     assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else if (property === "id") {
+                                    assert.equal(replaced.id, "sample udf replaced", "id should match");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
                                 }
                             }
                         },
                         replaceProperties: function(resource) {
+                            resource.id = "sample udf replaced";
                             resource.body = function () { var x = 20; };
+                            return resource;
+                        },
+                        validateReplaceForUpsert: function(created, replaced) {
+                            for (var property in udfDefinition) {
+                                if (property === "serverScript") {
+                                    assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " +property + " should match");
+                                }
+                            }
+                        },
+                        replacePropertiesForUpsert: function(resource) {
+                            resource.body = function() { var x = 20; };
                             return resource;
                         }
                     };
@@ -555,17 +664,20 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do UDF CRUD operations successfully", function (done) { udfCrudTest(false, done); });
+        it("[promiseApi] Should do UDF CRUD operations successfully with upsert", function(done) { udfCrudTest(true, done); });
     });
 
-    describe("Validate sproc CRUD", function(){
-        it("[promiseApi] Should do sproc CRUD operations successfully", function(done){
-            var client = new DocumentDBClient(host, {masterKey: masterKey});
-            createParentResourcesAsync(client, {db: true, coll: true})
+    describe("Validate sproc CRUD", function() {
+        var sprocCrudTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            createParentResourcesAsync(client, { db: true, coll: true })
                 .then(function(createdResources) {
                     var sprocDefinition = {
                         id: "sample sproc",
-                        serverScript: function () { var x = 10; }
+                        serverScript: function() { var x = 10; }
                     };
 
                     var validateOptions = {
@@ -573,23 +685,39 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                         resourceDefinition: sprocDefinition,
                         validateCreate: function(created) {
                             for (var property in sprocDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(created[property], sprocDefinition[property], "property " + property + " should match");
-                                } else {
+                                if (property === "serverScript") {
                                     assert.equal(created.body, "function () { var x = 10; }");
-                                }
-                            }
-                        },
-                        validateReplace: function(created, replaced) {
-                            for (var property in sprocDefinition) {
-                                if (property !== "serverScript") {
-                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
                                 } else {
-                                    assert.equal(replaced.body, "function () { var x = 20; }");
+                                    assert.equal(created[property], sprocDefinition[property], "property " + property + " should match");
                                 }
                             }
                         },
-                        replaceProperties: function(resource) {
+                        validateReplace: function (created, replaced) {
+                            for (var property in sprocDefinition) {
+                                if (property === "serverScript") {
+                                    assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else if (property === "id") {
+                                    assert.equal(replaced.id, "sample sproc replaced", "id should match");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
+                                }
+                            }
+                        },
+                        replaceProperties: function (resource) {
+                            resource.id = "sample sproc replaced";
+                            resource.body = function () { var x = 20; };
+                            return resource;
+                        },
+                        validateReplaceForUpsert: function (created, replaced) {
+                            for (var property in sprocDefinition) {
+                                if (property === "serverScript") {
+                                    assert.equal(replaced.body, "function () { var x = 20; }");
+                                } else {
+                                    assert.equal(replaced[property], created[property], "property " + property + " should match");
+                                }
+                            }
+                        },
+                        replacePropertiesForUpsert: function (resource) {
                             resource.body = function () { var x = 20; };
                             return resource;
                         }
@@ -604,7 +732,10 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                             done();
                         });
                 });
-        });
+        };
+
+        it("[promiseApi] Should do sproc CRUD operations successfully", function (done) { sprocCrudTest(false, done); });
+        it("[promiseApi] Should do sproc CRUD operations successfully with upsert", function(done) { sprocCrudTest(true, done); });
     });
 
     describe("Validate QueryIterator Functionality", function() {
@@ -669,7 +800,6 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
                     done();
                 });
         });
-
 
         it("[promiseApi] validate queryIterator iterator forEach", function(done) {
             var client = new DocumentDBClient(host, {masterKey: masterKey});

@@ -41,6 +41,22 @@ function createOperationPromise(contextObject, functionName, parentLink, body, o
     return deferred.promise;
 }
 
+function upsertOperationPromise(contextObject, functionName, parentLink, body, options){
+    var deferred = Q.defer();
+    var cb = function (error, resource, responseHeaders) {
+        if (error) {
+            addOrMergeHeadersForError(error, responseHeaders); 
+            deferred.reject(error);
+        } else {
+            deferred.resolve({resource: resource, headers: responseHeaders});
+        }
+    };
+
+    contextObject[functionName](parentLink, body, options, cb);
+
+    return deferred.promise;
+}
+
 function deleteOperationPromise(contextObject, functionName, resourceLink, options){
     var deferred = Q.defer();
     contextObject[functionName](resourceLink, options, function (error, resource, responseHeaders) {
@@ -391,6 +407,21 @@ var DocumentClientWrapper = Base.defineClass(
             return createOperationPromise(this._innerDocumentclient, "createUser", databaseLink, body, options);
         },
 
+         /**
+         * Upsert a user.
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} databaseLink - The self-link of the database.
+         * @param {object} body - represents the body of the user.
+         * @param {string} body.id   - The id of the user.
+         * @param {RequestOptions} [options] - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertUserAsync: function (databaseLink, body, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertUser", databaseLink, body, options);
+        },
+
         /**
          * Get all users in this database.
          * @memberof DocumentClientWrapper
@@ -458,6 +489,24 @@ var DocumentClientWrapper = Base.defineClass(
          */
         createPermissionAsync: function(userLink, body, options) {
             return createOperationPromise(this._innerDocumentclient, "createPermission", userLink, body, options);
+        },
+
+        /**
+         * Upsert a permission.
+         * <p> A permission represents a per-User Permission to access a specific resource e.g. Document or Collection.  </p>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} userLink - The self-link of the user.
+         * @param {object} body - represents the body of the permission.
+         * @param {string} body.id   - The id of the permission
+         * @param {string} body.permissionMode - The mode of the permission, must be a value of {@link PermissionMode}
+         * @param {string} body.resource - the link of the resource that the permission will be applied to.
+         * @param {RequestOptions} [options] - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertPermissionAsync: function(userLink, body, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertPermission", userLink, body, options);
         },
 
         /**
@@ -598,6 +647,26 @@ var DocumentClientWrapper = Base.defineClass(
         },
 
         /**
+         * Upsert a document.
+         * <p>
+         * There is no set schema for JSON documents. They may contain any number of custom properties as well as an optional list of attachments. <br>
+         * A Document is an application resource and can be authorized using the master key or resource keys
+         * </p>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} collectionLink                            - The self-link of the collection.
+         * @param {object} body                                      - Represents the body of the document. Can contain any number of user defined properties.
+         * @param {string} [body.id]                                 - The id of the document, MUST be unique for each document.
+         * @param {RequestOptions} [options]                         - The request options.
+         * @param {boolean} [options.disableAutomaticIdGeneration]   - Disables the automatic id generation. If id is missing in the body and this option is true, an error will be returned.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertDocumentAsync: function (collectionLink, body, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertDocument", collectionLink, body, options);
+        },
+
+        /**
          * Reads a document.
          * @memberof DocumentClientWrapper
          * @instance
@@ -655,6 +724,28 @@ var DocumentClientWrapper = Base.defineClass(
          */
         createTriggerAsync: function (collectionLink, trigger, options) {
             return createOperationPromise(this._innerDocumentclient, "createTrigger", collectionLink, trigger, options);
+        },
+
+        /**
+         * Create a trigger.
+         * <p>
+         * DocumentDB supports pre and post triggers defined in JavaScript to be executed on creates, updates and deletes. <br>
+         * For additional details, refer to the server-side JavaScript API documentation.
+         * </p>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} collectionLink - The self-link of the collection.
+         * @param {object} trigger - represents the body of the trigger.
+         * @param {string} trigger.id - represents The id of the trigger.
+         * @param {string} trigger.triggerType - represents the type of the trigger, should be one of the values of {@link TriggerType}.
+         * @param {string} trigger.triggerOperation - represents the trigger operation, should be one of the values of {@link TriggerOperation}.
+         * @param {function} trigger.serverScript - represents the body of the trigger, it can be passed as stringified too.
+         * @param {RequestOptions} [options] - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertTriggerAsync: function (collectionLink, trigger, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertTrigger", collectionLink, trigger, options);
         },
 
         /**
@@ -717,6 +808,27 @@ var DocumentClientWrapper = Base.defineClass(
         },
 
         /**
+         * Upsert a UserDefinedFunction.
+         * <p>
+         * DocumentDB supports JavaScript UDFs which can be used inside queries, stored procedures and triggers. <br>
+         * For additional details, refer to the server-side JavaScript API documentation.
+         * </p>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} collectionLink - The self-link of the collection.
+         * @param {object} udf - represents the body of the userDefinedFunction.
+         * @param {string} udf.id - represents The id of the udf.
+         * @param {string} udf.userDefinedFunctionType - the type of the udf, it should be one of the values of {@link UserDefinedFunctionType}
+         * @param {function} udf.serverScript - represents the body of the udf, it can be passed as stringified too.
+         * @param {RequestOptions} [options]  - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertUserDefinedFunctionAsync: function (collectionLink, udf, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertUserDefinedFunction", collectionLink, udf, options);
+        },
+
+        /**
          * Reads a udf object.
          * @memberof DocumentClientWrapper
          * @instance
@@ -773,6 +885,27 @@ var DocumentClientWrapper = Base.defineClass(
          */
         createStoredProcedureAsync: function (collectionLink, sproc, options) {
             return createOperationPromise(this._innerDocumentclient, "createStoredProcedure", collectionLink, sproc, options);
+        },
+
+        /**
+         * Upsert a StoredProcedure object.
+         * <p>
+         * DocumentDB allows stored procedures to be executed in the storage tier, directly against a document collection. The script <br>
+         * gets executed under ACID transactions on the primary storage partition of the specified collection. For additional details, <br>
+         * refer to the server-side JavaScript API documentation.
+         * </p>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} collectionLink - The self-link of the collection.
+         * @param {object} sproc - represents the body of the stored procedure.
+         * @param {string} sproc.id - represents The id of the stored procedure.
+         * @param {function} sproc.serverScript - represents the body of the stored procedure, it can be passed as stringified too.
+         * @param {RequestOptions} [options] - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+         */
+        upsertStoredProcedureAsync: function (collectionLink, sproc, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertStoredProcedure", collectionLink, sproc, options);
         },
 
         /**
@@ -901,6 +1034,26 @@ var DocumentClientWrapper = Base.defineClass(
         },
 
         /**
+         * Upsert an attachment for the document object.
+         * <p>
+         * Each document may contain zero or more attachemnts. Attachments can be of any MIME type - text, image, binary data. <br>
+         * These are stored externally in Azure Blob storage. Attachments are automatically deleted when the parent document is deleted.
+         * </P>
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} documentLink      - The self-link of the document.
+         * @param {Object} body              - The metadata the defines the attachment media like media, contentType. It can include any other properties as part of the metedata.
+         * @param {string} body.contentType  - the MIME contentType of the attachment.
+         * @param {string} body.media        - Media link associated with the attachment content.
+         * @param {RequestOptions} [options] - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+        */
+        upsertAttachmentAsync: function (documentLink, body, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertAttachment", documentLink, body, options);
+        },
+
+        /**
          * Create an attachment for the document object.
          * @memberof DocumentClientWrapper
          * @instance
@@ -912,6 +1065,20 @@ var DocumentClientWrapper = Base.defineClass(
         */
         createAttachmentAndUploadMediaAsync: function(documentLink, readableStream, options) {
             return createOperationPromise(this._innerDocumentclient, "createAttachmentAndUploadMedia", documentLink, readableStream, options);
+        },
+
+        /**
+         * Upsert an attachment for the document object.
+         * @memberof DocumentClientWrapper
+         * @instance
+         * @param {string} documentLink             - The self-link of the document.
+         * @param {stream.Readable} readableStream  - the stream that represents the media itself that needs to be uploaded.
+         * @param {MediaOptions} [options]          - The request options.
+         * @Returns {Object} <p>A promise object for the request completion. <br>
+                             The onFulfilled callback takes a parameter of type {@link ResourceResponse} and the OnError callback takes a parameter of type {@link ResponseError}</p>
+        */
+        upsertAttachmentAndUploadMediaAsync: function(documentLink, readableStream, options) {
+            return upsertOperationPromise(this._innerDocumentclient, "upsertAttachmentAndUploadMedia", documentLink, readableStream, options);
         },
 
         /**
