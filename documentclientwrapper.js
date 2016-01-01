@@ -636,10 +636,11 @@ var DocumentClientWrapper = Base.defineClass(
          * Query the documents for the collection.
          * @memberof DocumentClientWrapper
          * @instance
-         * @param {string} collectionLink       - The self-link of the collection.
-         * @param {SqlQuerySpec | string} query - A SQL query.
-         * @param {FeedOptions} [options]       - Represents the feed options.
-         * @returns {QueryIterator}             - An instance of queryIterator to handle reading feed.
+         * @param {string} collectionOrDatabaseLink - The collection link or database link if using a partition resolver
+         * @param {SqlQuerySpec | string} query     - A SQL query.
+         * @param {FeedOptions} [options]           - Represents the feed options.
+         * @param {object} [options.partitionKey]   - Optional partition key to be used with the partiotion resolver
+         * @returns {QueryIterator}                 - An instance of queryIterator to handle reading feed.
          */
         queryDocuments: function (collectionLink, query, options) {
             return new QueryIteratorWrapper(this._innerDocumentclient.queryDocuments(collectionLink, query, options));
@@ -653,7 +654,7 @@ var DocumentClientWrapper = Base.defineClass(
          * </p>
          * @memberof DocumentClientWrapper
          * @instance
-         * @param {string} collectionLink                            - The self-link of the collection.
+         * @param {string} collectionOrDatabaseLink                  - The collection link or database link if using a partition resolver
          * @param {object} body                                      - Represents the body of the document. Can contain any number of user defined properties.
          * @param {string} [body.id]                                 - The id of the document, MUST be unique for each document.
          * @param {RequestOptions} [options]                         - The request options.
