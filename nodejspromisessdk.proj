@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{C08DD1E9-7197-497E-A585-76BD7563999A}</ProjectGuid>
+  </PropertyGroup>
+  
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), Build.props))\Build.props" />
+
+  <PropertyGroup>
+    <OutDir>$(DocDBTargetDestination)SDK\package\nodejspromisesclient\</OutDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="package.json"/>
+    <Content Include="*.js"/>
+    <Content Include="readme.md"/>
+    <Content Include="test\*.js">
+      <DestinationSubDirectory>tests\</DestinationSubDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Import Project="$(BuildExtensionsPath)\NoTarget.targets"/>
+
+  <Target Name="Build"
+    Inputs="@(Content)"
+    Outputs="@(Content->'$(OutDir)%(DestinationSubDirectory)%(RecursiveDir)%(Filename)%(Extension)')">
+
+    <Copy
+      SourceFiles="@(Content)"
+      DestinationFiles="@(Content->'$(OutDir)%(DestinationSubDirectory)%(RecursiveDir)%(Filename)%(Extension)')"
+      Retries="3"
+      />
+
+  </Target>
+
+</Project>

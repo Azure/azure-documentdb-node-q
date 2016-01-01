@@ -1,6 +1,25 @@
-//----------------------------------------------------------------------------
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//----------------------------------------------------------------------------
+/*
+The MIT License (MIT)
+Copyright (c) 2014 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 "use strict";
 
@@ -310,6 +329,69 @@ describe("NodeJS Client Q promise Wrapper CRUD Tests", function(){
 
         it("[promiseApi] Should do document CRUD operations successfully", function (done) { validateDocumentCrudTest(false, done) });
         it("[promiseApi] Should do document CRUD operations successfully with upsert", function (done) { validateDocumentCrudTest(true, done) });
+
+        var validateDocumentCrudWithPartitionResolverTest = function(useUpsert, done) {
+            var client = new DocumentDBClient(host, { masterKey: masterKey });
+            var getPartitionResolver = function(collectionLink1, collectionLink2) {
+                return {
+                    getPartitionKey: function(document) {
+                        return document.id;
+                    },
+                    resolve: function(partitionKey) {
+                        var endsWith = function(str, suffix) {
+                            return (str.indexOf(suffix, str.length - suffix.length) !== -1);
+                        };
+
+                        if (endsWith(partitionKey, "1")) {
+                            return collectionLink1;
+                        } else {
+                            return collectionLink2;
+                        }
+                    },
+                    resolveForCreate: function(partitionKey) {
+                        return this.resolve(partitionKey);
+                    },
+                    resolveForRead: function(partitionKey) {
+                        return [this.resolve(partitionKey)];
+                    }
+                };
+            }
+            var querySpec = {
+                query: "SELECT * FROM root"
+            };
+
+            createParentResourcesAsync(client, { db: true }).then(function(createdResources) {
+                var db = createdResources.createdDb;
+                client.createCollectionAsync(db._self, { id: "sample coll 1" }).then(function(response) {
+                    var collection1 = response.resource;
+                    client.createCollectionAsync(db._self, { id: "sample coll 2" }).then(function(response) {
+                        var collection2 = response.resource;
+
+                        client.partitionResolvers["foo"] = getPartitionResolver(collection1._self, collection2._self);
+
+                        client.createDocumentAsync("foo", { id: "sample doc 1" }).then(function(response) {
+                            client.createDocumentAsync("foo", { id: "sample doc 2" }).then(function(response) {
+                                client.createDocumentAsync("foo", { id: "sample doc 11" }).then(function(response) {
+                                    client.queryDocuments("foo", querySpec, { partitionKey: "1" }).toArrayAsync().then(function(response) {
+                                        assert(response.feed.length === 2, "number of documents in collection 1");
+                                        client.queryDocuments("foo", querySpec, { partitionKey: "2" }).toArrayAsync().then(function(response) {
+                                            assert(response.feed.length === 1, "number of documents in collection 2");
+                                        }).then(function() {
+                                            done();
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        };
+
+        it("[promiseApi] Should do document CRUD operations with a partition resolver successfully", function (done) { validateDocumentCrudWithPartitionResolverTest(false, done) });
+        it("[promiseApi] Should do document CRUD operations with a partition resolver successfully with upsert", function (done) { validateDocumentCrudWithPartitionResolverTest(true, done) });
+
+
     });
 
     describe("Validate Attachment CRUD", function(){

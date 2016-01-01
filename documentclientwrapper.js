@@ -1,6 +1,25 @@
-//----------------------------------------------------------------------------
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//----------------------------------------------------------------------------
+/*
+The MIT License (MIT)
+Copyright (c) 2014 Microsoft Corporation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 "use strict";
 
@@ -617,10 +636,11 @@ var DocumentClientWrapper = Base.defineClass(
          * Query the documents for the collection.
          * @memberof DocumentClientWrapper
          * @instance
-         * @param {string} collectionLink       - The self-link of the collection.
-         * @param {SqlQuerySpec | string} query - A SQL query.
-         * @param {FeedOptions} [options]       - Represents the feed options.
-         * @returns {QueryIterator}             - An instance of queryIterator to handle reading feed.
+         * @param {string} collectionOrDatabaseLink - The collection link or database link if using a partition resolver
+         * @param {SqlQuerySpec | string} query     - A SQL query.
+         * @param {FeedOptions} [options]           - Represents the feed options.
+         * @param {object} [options.partitionKey]   - Optional partition key to be used with the partiotion resolver
+         * @returns {QueryIterator}                 - An instance of queryIterator to handle reading feed.
          */
         queryDocuments: function (collectionLink, query, options) {
             return new QueryIteratorWrapper(this._innerDocumentclient.queryDocuments(collectionLink, query, options));
@@ -634,7 +654,7 @@ var DocumentClientWrapper = Base.defineClass(
          * </p>
          * @memberof DocumentClientWrapper
          * @instance
-         * @param {string} collectionLink                            - The self-link of the collection.
+         * @param {string} collectionOrDatabaseLink                  - The collection link or database link if using a partition resolver
          * @param {object} body                                      - Represents the body of the document. Can contain any number of user defined properties.
          * @param {string} [body.id]                                 - The id of the document, MUST be unique for each document.
          * @param {RequestOptions} [options]                         - The request options.
