@@ -44,7 +44,7 @@ function createOperationPromise(contextObject, functionName, parentLink, body, o
     var deferred = Q.defer();
     var cb = function (error, resource, responseHeaders) {
         if (error) {
-            addOrMergeHeadersForError(error, responseHeaders); 
+            addOrMergeHeadersForError(error, responseHeaders);
             deferred.reject(error);
         } else {
             deferred.resolve({resource: resource, headers: responseHeaders});
@@ -64,7 +64,7 @@ function upsertOperationPromise(contextObject, functionName, parentLink, body, o
     var deferred = Q.defer();
     var cb = function (error, resource, responseHeaders) {
         if (error) {
-            addOrMergeHeadersForError(error, responseHeaders); 
+            addOrMergeHeadersForError(error, responseHeaders);
             deferred.reject(error);
         } else {
             deferred.resolve({resource: resource, headers: responseHeaders});
@@ -80,7 +80,7 @@ function deleteOperationPromise(contextObject, functionName, resourceLink, optio
     var deferred = Q.defer();
     contextObject[functionName](resourceLink, options, function (error, resource, responseHeaders) {
         if (error) {
-            addOrMergeHeadersForError(error, responseHeaders); 
+            addOrMergeHeadersForError(error, responseHeaders);
             deferred.reject(error);
         } else {
             deferred.resolve({resource: resource, headers: responseHeaders});
@@ -148,7 +148,7 @@ function readFeedOperationPromise(contextObject, functionName, query, options, s
     var deferred = Q.defer();
     contextObject[functionName](query, options, function (error, resources, responseHeaders) {
         if (error) {
-            addOrMergeHeadersForError(error, responseHeaders); 
+            addOrMergeHeadersForError(error, responseHeaders);
             deferred.reject(error);
         } else {
             deferred.resolve(successFn(resources), responseHeaders);
@@ -190,7 +190,7 @@ var QueryIteratorWrapper = Base.defineClass(
             var that = this;
             this._innerQueryIterator.toArray(function (error, resources, responseHeaders) {
                 if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders); 
+                    addOrMergeHeadersForError(error, responseHeaders);
                     deferred.reject(error);
                 } else {
                     deferred.resolve({ feed: resources, headers: responseHeaders });
@@ -211,7 +211,7 @@ var QueryIteratorWrapper = Base.defineClass(
             var that = this;
             this._innerQueryIterator.nextItem(function (error, item, responseHeaders) {
                 if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders); 
+                    addOrMergeHeadersForError(error, responseHeaders);
                     deferred.reject(error);
                 } else {
                     deferred.resolve({ resource: item, headers: responseHeaders });
@@ -232,7 +232,7 @@ var QueryIteratorWrapper = Base.defineClass(
             var that = this;
             this._innerQueryIterator.executeNext(function (error, resources, responseHeaders) {
                 if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders); 
+                    addOrMergeHeadersForError(error, responseHeaders);
                     deferred.reject(error);
                 } else {
                     deferred.resolve({ feed: resources, headers: responseHeaders });
@@ -1251,16 +1251,18 @@ var DocumentClientWrapper = Base.defineClass(
          * Execute the StoredProcedure represented by the object.
          * @memberof DocumentClientWrapper
          * @instance
-         * @param {string} sprocLink    - The self-link of the stored procedure.
-         * @param {Array} [params]      - Represent the parameters of the stored procedure.
+         * @param {string} sprocLink                - The self-link of the stored procedure.
+         * @param {Array} [params]                  - Represent the parameters of the stored procedure.
+         * @param {Object} [options]                - options for executing the stored procedure
+         * @param {Object} [options.partitionKey]   - partition key value if executing against a partitioned collection
          * @Returns {Object} <p>A promise object for the request completion. <br>
                              The onFulfilled callback takes a parameter of type {@link Response} and the OnError callback takes a parameter of type {@link ResponseError}</p>
         */
-        executeStoredProcedureAsync: function(sprocLink, params) {
+        executeStoredProcedureAsync: function(sprocLink, params, options) {
             var deferred = Q.defer();
-            this._innerDocumentclient.executeStoredProcedure(sprocLink, params, function (error, result, responseHeaders) {
+            this._innerDocumentclient.executeStoredProcedure(sprocLink, params, options, function (error, result, responseHeaders) {
                 if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders); 
+                    addOrMergeHeadersForError(error, responseHeaders);
                     deferred.reject(error);
                 } else {
                     deferred.resolve({result: result, headers: responseHeaders});
