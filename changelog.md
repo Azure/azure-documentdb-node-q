@@ -1,3 +1,12 @@
+## Changes in 1.6.0 : ##
+
+- Add support for partitioned collections
+
+
+## Changes in 1.5.0 : ##
+
+- Added client side partitioning support
+
 ## Changes in 1.4.0 : ##
 
 - Add upsert support
