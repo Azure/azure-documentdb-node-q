@@ -23,10 +23,10 @@ SOFTWARE.
 
 "use strict";
 
-var Base = require("documentdb").Base
-  , DocumentClient = require("documentdb").DocumentClient
-  , DocumentBase = require("documentdb").DocumentBase
-  , Q = require("q");
+var Base = require("documentdb").Base;
+var DocumentClient = require("documentdb").DocumentClient;
+var DocumentBase = require("documentdb").DocumentBase;
+var Bluebird = require("bluebird");
 
 function addOrMergeHeadersForError(error, responseHeaders){
     if (!error.responseHeaders) {
@@ -41,121 +41,114 @@ function addOrMergeHeadersForError(error, responseHeaders){
 }
 
 function createOperationPromise(contextObject, functionName, parentLink, body, options){
-    var deferred = Q.defer();
-    var cb = function (error, resource, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
+    return new Bluebird((resolve, reject) => {
+        var cb = function (error, resource, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({resource: resource, headers: responseHeaders});
+            }
+        };
+
+        if (parentLink) {
+            contextObject[functionName](parentLink, body, options, cb);
         } else {
-            deferred.resolve({resource: resource, headers: responseHeaders});
+            contextObject[functionName](body, options, cb);
         }
-    };
-
-    if (parentLink) {
-        contextObject[functionName](parentLink, body, options, cb);
-    } else {
-        contextObject[functionName](body, options, cb);
-    }
-
-    return deferred.promise;
+    });
 }
 
 function upsertOperationPromise(contextObject, functionName, parentLink, body, options){
-    var deferred = Q.defer();
-    var cb = function (error, resource, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
-        } else {
-            deferred.resolve({resource: resource, headers: responseHeaders});
-        }
-    };
+    return new Bluebird((resolve, reject) => {
+        var cb = function (error, resource, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({resource: resource, headers: responseHeaders});
+            }
+        };
 
-    contextObject[functionName](parentLink, body, options, cb);
-
-    return deferred.promise;
+        contextObject[functionName](parentLink, body, options, cb);
+    });
 }
 
 function deleteOperationPromise(contextObject, functionName, resourceLink, options){
-    var deferred = Q.defer();
-    contextObject[functionName](resourceLink, options, function (error, resource, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
-        } else {
-            deferred.resolve({resource: resource, headers: responseHeaders});
-        }
+    return new Bluebird((resolve, reject) => {
+        contextObject[functionName](resourceLink, options, function (error, resource, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({resource: resource, headers: responseHeaders});
+            }
+        });
     });
-
-    return deferred.promise;
 }
 
 function replaceOperationPromise(contextObject, functionName, resourceLink, newResource, options){
-    var deferred = Q.defer();
-    var callback = function (error, resource, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
+    return new Bluebird((resolve, reject) => {
+        var callback = function (error, resource, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({ resource: resource, headers: responseHeaders });
+            }
+        };
+
+        if (options === undefined) {
+            contextObject[functionName](resourceLink, newResource, callback);
         } else {
-            deferred.resolve({ resource: resource, headers: responseHeaders });
+            contextObject[functionName](resourceLink, newResource, options, callback);
         }
-    };
-
-    if (options === undefined) {
-        contextObject[functionName](resourceLink, newResource, callback);
-    } else {
-        contextObject[functionName](resourceLink, newResource, options, callback);
-    }
-
-    return deferred.promise;
+    });
 }
 
 function readOperationPromise(contextObject, functionName, resourceLink, options){
-    var deferred = Q.defer();
-    var callback = function (error, resource, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
+    return new Bluebird((resolve, reject) => {
+        var callback = function (error, resource, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({ resource: resource, headers: responseHeaders });
+            }
+        };
+
+        if (options === undefined) {
+            contextObject[functionName](resourceLink, callback);
         } else {
-            deferred.resolve({ resource: resource, headers: responseHeaders });
+            contextObject[functionName](resourceLink, options, callback);
         }
-    };
-
-    if (options === undefined) {
-        contextObject[functionName](resourceLink, callback);
-    } else {
-        contextObject[functionName](resourceLink, options, callback);
-    }
-
-    return deferred.promise;
+    });
 }
 
 function noParameterPromise(contextObject, functionName, resourceLink){
-    var deferred = Q.defer();
-    contextObject[functionName](resourceLink, function (error, resources, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
-        } else {
-            deferred.resolve({result: resources, headers: responseHeaders});
-        }
+    return new Bluebird((resolve, reject) => {
+        contextObject[functionName](resourceLink, function (error, resources, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve({result: resources, headers: responseHeaders});
+            }
+        });
     });
-
-    return deferred.promise;
 }
 
 function readFeedOperationPromise(contextObject, functionName, query, options, successFn) {
-    var deferred = Q.defer();
-    contextObject[functionName](query, options, function (error, resources, responseHeaders) {
-        if (error) {
-            addOrMergeHeadersForError(error, responseHeaders);
-            deferred.reject(error);
-        } else {
-            deferred.resolve(successFn(resources), responseHeaders);
-        }
+    return new Bluebird((resolve, reject) => {
+        contextObject[functionName](query, options, function (error, resources, responseHeaders) {
+            if (error) {
+                addOrMergeHeadersForError(error, responseHeaders);
+                reject(error);
+            } else {
+                resolve(successFn(resources), responseHeaders);
+            }
+        });
     });
-
-    return deferred.promise;
 }
 
 var QueryIteratorWrapper = Base.defineClass(
@@ -186,18 +179,17 @@ var QueryIteratorWrapper = Base.defineClass(
         * @Returns {Object} A promise object for the request completion. the onFulfilled callback is of type {@link FeedResponse} and onError callback is of type {@link ResponseError}
         */
         toArrayAsync: function () {
-            var deferred = Q.defer();
             var that = this;
-            this._innerQueryIterator.toArray(function (error, resources, responseHeaders) {
-                if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders);
-                    deferred.reject(error);
-                } else {
-                    deferred.resolve({ feed: resources, headers: responseHeaders });
-                }
+            return new Bluebird((resolve, reject) => {
+                this._innerQueryIterator.toArray(function (error, resources, responseHeaders) {
+                    if (error) {
+                        addOrMergeHeadersForError(error, responseHeaders);
+                        reject(error);
+                    } else {
+                        resolve({ feed: resources, headers: responseHeaders });
+                    }
+                });
             });
-
-            return deferred.promise;
         },
 
         /**
@@ -207,18 +199,16 @@ var QueryIteratorWrapper = Base.defineClass(
         * @Returns {Object} A promise object for the request completion. The onFulfilled callback is of type {@link ResourceResponse} and onError callback is of type {@link ResponseError}
         */
         nextItemAsync: function () {
-            var deferred = Q.defer();
-            var that = this;
-            this._innerQueryIterator.nextItem(function (error, item, responseHeaders) {
-                if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders);
-                    deferred.reject(error);
-                } else {
-                    deferred.resolve({ resource: item, headers: responseHeaders });
-                }
+            return new Bluebird((resolve, reject) => {
+                this._innerQueryIterator.nextItem(function (error, item, responseHeaders) {
+                    if (error) {
+                        addOrMergeHeadersForError(error, responseHeaders);
+                        reject(error);
+                    } else {
+                        resolve({ resource: item, headers: responseHeaders });
+                    }
+                });
             });
-
-            return deferred.promise;
         },
 
         /**
@@ -228,18 +218,16 @@ var QueryIteratorWrapper = Base.defineClass(
          * @Returns {Object} A promise object for the request completion. the onFulfilled callback is of type {@link FeedResponse} and onError callback is of type {@link ResponseError}
          */
         executeNextAsync: function () {
-            var deferred = Q.defer();
-            var that = this;
-            this._innerQueryIterator.executeNext(function (error, resources, responseHeaders) {
-                if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders);
-                    deferred.reject(error);
-                } else {
-                    deferred.resolve({ feed: resources, headers: responseHeaders });
-                }
+            return new Bluebird((resolve, reject) => {
+                this._innerQueryIterator.executeNext(function (error, resources, responseHeaders) {
+                    if (error) {
+                        addOrMergeHeadersForError(error, responseHeaders);
+                        reject(error);
+                    } else {
+                        resolve({ feed: resources, headers: responseHeaders });
+                    }
+                });
             });
-
-            return deferred.promise;
         },
 
         /**
@@ -1259,16 +1247,16 @@ var DocumentClientWrapper = Base.defineClass(
                              The onFulfilled callback takes a parameter of type {@link Response} and the OnError callback takes a parameter of type {@link ResponseError}</p>
         */
         executeStoredProcedureAsync: function(sprocLink, params, options) {
-            var deferred = Q.defer();
-            this._innerDocumentclient.executeStoredProcedure(sprocLink, params, options, function (error, result, responseHeaders) {
-                if (error) {
-                    addOrMergeHeadersForError(error, responseHeaders);
-                    deferred.reject(error);
-                } else {
-                    deferred.resolve({result: result, headers: responseHeaders});
-                }
+            return new Bluebird((resolve, reject) => {
+                this._innerDocumentclient.executeStoredProcedure(sprocLink, params, options, function (error, result, responseHeaders) {
+                    if (error) {
+                        addOrMergeHeadersForError(error, responseHeaders);
+                        reject(error);
+                    } else {
+                        resolve({result: result, headers: responseHeaders});
+                    }
+                });
             });
-            return deferred.promise;
         },
 
         /**
