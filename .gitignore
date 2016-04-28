@@ -3,6 +3,8 @@
 generateDocs.cmd
 RunFunctionalTests.cmd
 runtests.cmd
+.idea
+.idea/*
 
 config.js
 

@@ -1,7 +1,7 @@
 {
- "name": "documentdb-q-promises",
- "description": "Q promises wrapper for the Azure DocumentDB Node.js SDK",
- "keywords": [
+  "name": "documentdb-bluebird-promises",
+  "description": "Bluebird promises wrapper for the Azure DocumentDB Node.js SDK",
+  "keywords": [
     "documentdb",
     "document database",
     "azure",
@@ -10,14 +10,21 @@
     "cloud",
     "promises"
   ],
-  "version": "1.6.0",
+  "version": "2.0.0",
   "author": "Microsoft Corporation",
+  "contributors": [
+    {
+      "name": "Jason Gilmore",
+      "email": "jgilmore@fnoex.com",
+      "url": "http://from-now-on.com/"
+    }
+  ],
   "main": "./documentclientwrapper.js",
   "engine": {
     "node": ">=0.8"
   },
   "dependencies": {
-    "q": "*",
+    "bluebird": "^3.3.5",
     "documentdb": "*"
   },
   "devDependencies": {
@@ -31,7 +38,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Azure/azure-documentdb-node-q"
+    "url": "https://github.com/Azure/azure-documentdb-node-bluebird"
   },
   "licenses": [
     {
