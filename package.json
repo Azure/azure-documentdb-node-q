@@ -10,13 +10,15 @@
     "cloud",
     "promises"
   ],
-  "version": "1.6.0",
+  "version": "2.0.0",
   "author": "Microsoft Corporation",
-  "contributors": [{
-    "name": "Jason Gilmore",
-    "email": "jgilmore@fnoex.com",
-    "url": "http://from-now-on.com/"
-  }],
+  "contributors": [
+    {
+      "name": "Jason Gilmore",
+      "email": "jgilmore@fnoex.com",
+      "url": "http://from-now-on.com/"
+    }
+  ],
   "main": "./documentclientwrapper.js",
   "engine": {
     "node": ">=0.8"
