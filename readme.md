@@ -1,4 +1,4 @@
-#Windows Azure DocumentDB Node.js Q promises wrapper
+#Windows Azure DocumentDB Node.js Bluebird promises wrapper
 
 [![Join the chat at https://gitter.im/Azure/azure-documentdb-node](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Azure/azure-documentdb-node?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -12,17 +12,18 @@ For documentation please see the Microsoft Azure [Node.js Developer Center](http
 
 ##Installation
 
-This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure/azure-documentdb-node) using the [Q promises](https://github.com/kriskowal/q) library.
-
-	npm install documentdb-q-promises
+This is a wrapper of the [Azure DocumentDB Node.js SDK](https://github.com/Azure/azure-documentdb-node) using the [Bluebird promises](https://github.com/kriskowal/q) library.  
+```
+	npm install documentdb-bluebird-promises
+```
 
 ##Usage
 
 To use this SDK to call Azure DocumentDB, you need to first [create an account](http://azure.microsoft.com/en-us/documentation/articles/documentdb-create-account/).
 
-##Hello world example code using Q promises
+##Hello world example code using Bluebird promises
 ```js
-	var DocumentClient = require('documentdb-q-promises').DocumentClientWrapper;
+	var DocumentClient = require('documentdb-bluebird-promises').DocumentClientWrapper;
 	
 	var host = [hostendpoint];                    // Add your endpoint
 	var masterKey = [database account masterkey]; // Add the massterkey of the endpoint
@@ -47,8 +48,8 @@ To use this SDK to call Azure DocumentDB, you need to first [create an account](
 			var document = documentResponse.resource;
 			console.log('Created Document with content: ', document.content);
 		})
-    	.fail(function(error) {
-        	console.log("An error occured", error);
+    	.catch(function(error) {
+        	console.log("An error occured", error.stack || error);
     	});
  ```
 
@@ -60,16 +61,15 @@ Getting started with Azure DocumentDB on Node.js:
 
 ##Need Help?
 
-Be sure to check out the Microsoft Azure [Developer Forums on MSDN](https://social.msdn.microsoft.com/forums/azure/en-US/home?forum=AzureDocumentDB) or the [Developer Forums on Stack Overflow](http://stackoverflow.com/questions/tagged/azure-documentdb) if you have trouble with the provided code.
+Be sure to check out the Microsoft Azure [Developer Forums on MSDN](https://social.msdn.microsoft.com/forums/azure/en-US/home?forum=AzureDocumentDB) or the [Developer Forums on Stack Overflow](http://stackoverflow.com/questions/tagged/azure-documentdb) if you have trouble with the azure-documentdb-node library.
 
 ##Contribute Code or Provide Feedback
 
-If you would like to become an active contributor to this project please follow the instructions provided in [Azure Projects Contribution Guidelines](http://azure.github.io/guidelines.html).
+If you would like to become an active contributor to this project feel free to fork this project and provide pull requests.
 
-If you encounter any bugs with the library please file an issue in the [Issues](https://github.com/Azure/azure-documentdb-node-q/issues) section of the project.
+If you encounter any bugs with the library please file an issue in the [Issues](https://github.com/fnoex/documentdb-node-bluebird/issues) section of the project.
 
 ##Learn More
 
 * [Azure Developer Center](http://azure.microsoft.com/en-us/develop/nodejs)
-* [Azure DocumentDB Node.js SDK Documentation](http://azure.github.io/azure-documentdb-node-q/)
 * [Azure DocumentDB Service](http://azure.microsoft.com/en-us/documentation/services/documentdb/)
