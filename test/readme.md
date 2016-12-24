@@ -1,4 +1,4 @@
-#Windows Azure DocumentDB Node.js Q promises wrapper tests
+#Microsoft Azure DocumentDB Node.js Q promises wrapper tests
 
 
 
@@ -24,10 +24,10 @@ Install to node_modules
 
 Edit _testConfig.js, supplying a host and masterKey for an existing DocumentDB account.
 
-WARNING! - do NOT use an account which contains objects or data which you care about. The test suite
+WARNING! - DO NOT use an account which contains objects or data which you care about. The test suite
 cleans up after itself and may delete any or all contents.
 
 
 
-From the tests folder run 
+From the test folder run 
 > mocha -t 0 -R spec
