@@ -1,4 +1,4 @@
-#Windows Azure DocumentDB Node.js Q promises wrapper
+#Microsoft Azure DocumentDB Node.js Q promises wrapper
 
 [![Join the chat at https://gitter.im/Azure/azure-documentdb-node](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Azure/azure-documentdb-node?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
@@ -25,7 +25,7 @@ To use this SDK to call Azure DocumentDB, you need to first [create an account](
 	var DocumentClient = require('documentdb-q-promises').DocumentClientWrapper;
 	
 	var host = [hostendpoint];                    // Add your endpoint
-	var masterKey = [database account masterkey]; // Add the massterkey of the endpoint
+	var masterKey = [database account masterkey]; // Add the masterkey of the endpoint
 	
 	var client = new DocumentClient(host, {masterKey: masterKey});
 	var databaseDefinition = { id: "sample database" }
