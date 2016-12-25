@@ -1,9 +1,6 @@
-*.csproj
-*.njsproj
 generateDocs.cmd
-RunFunctionalTests.cmd
 runtests.cmd
-*.proj
+nodejspromisessdk.proj
 
 config.js
 
